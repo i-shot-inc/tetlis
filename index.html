@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>改良版テトリス</title>
+    <style>
+        #game-container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 20px;
+        }
+        #game-board, #next-piece {
+            background-color: #f0f0f0;
+            position: relative;
+        }
+        #game-board {
+            width: 300px;
+            height: 600px;
+        }
+        #next-piece {
+            width: 120px;
+            height: 120px;
+        }
+        .block {
+            width: 30px;
+            height: 30px;
+            position: absolute;
+            box-sizing: border-box;
+            border: 1px solid #000;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="game-board"></div>
+        <div id="next-piece"></div>
+    </div>
+    <script>
+        const gameBoard = document.getElementById('game-board');
+        const nextPieceDisplay = document.getElementById('next-piece');
+        const boardWidth = 10;
+        const boardHeight = 20;
+        let board = Array(boardHeight).fill().map(() => Array(boardWidth).fill(0));
+        let currentPiece, nextPiece;
+        let currentX, currentY;
+
+        const pieces = [
+            {shape: [[1, 1, 1, 1]], color: 'cyan'},
+            {shape: [[1, 1], [1, 1]], color: 'yellow'},
+            {shape: [[1, 1, 1], [0, 1, 0]], color: 'purple'},
+            {shape: [[1, 1, 1], [1, 0, 0]], color: 'orange'},
+            {shape: [[1, 1, 1], [0, 0, 1]], color: 'blue'},
+            {shape: [[1, 1, 0], [0, 1, 1]], color: 'green'},
+            {shape: [[0, 1, 1], [1, 1, 0]], color: 'red'}
+        ];
+
+        function createPiece() {
+            if (!nextPiece) {
+                nextPiece = pieces[Math.floor(Math.random() * pieces.length)];
+            }
+            currentPiece = nextPiece;
+            nextPiece = pieces[Math.floor(Math.random() * pieces.length)];
+            currentX = Math.floor(boardWidth / 2) - Math.floor(currentPiece.shape[0].length / 2);
+            currentY = 0;
+            drawNextPiece();
+        }
+
+        function drawBoard() {
+            gameBoard.innerHTML = '';
+            for (let y = 0; y < boardHeight; y++) {
+                for (let x = 0; x < boardWidth; x++) {
+                    if (board[y][x]) {
+                        drawBlock(gameBoard, x, y, board[y][x]);
+                    }
+                }
+            }
+        }
+
+        function drawPiece() {
+            for (let y = 0; y < currentPiece.shape.length; y++) {
+                for (let x = 0; x < currentPiece.shape[y].length; x++) {
+                    if (currentPiece.shape[y][x]) {
+                        drawBlock(gameBoard, currentX + x, currentY + y, currentPiece.color);
+                    }
+                }
+            }
+        }
+
+        function drawNextPiece() {
+            nextPieceDisplay.innerHTML = '';
+            for (let y = 0; y < nextPiece.shape.length; y++) {
+                for (let x = 0; x < nextPiece.shape[y].length; x++) {
+                    if (nextPiece.shape[y][x]) {
+                        drawBlock(nextPieceDisplay, x, y, nextPiece.color, true);
+                    }
+                }
+            }
+        }
+
+        function drawBlock(container, x, y, color, isNextPiece = false) {
+            const block = document.createElement('div');
+            block.className = 'block';
+            block.style.backgroundColor = color;
+            if (isNextPiece) {
+                block.style.left = x * 30 + 15 + 'px';
+                block.style.top = y * 30 + 15 + 'px';
+            } else {
+                block.style.left = x * 30 + 'px';
+                block.style.top = y * 30 + 'px';
+            }
+            container.appendChild(block);
+        }
+
+        function canMove(dx, dy, newPiece = currentPiece.shape) {
+            for (let y = 0; y < newPiece.length; y++) {
+                for (let x = 0; x < newPiece[y].length; x++) {
+                    if (newPiece[y][x]) {
+                        const newX = currentX + x + dx;
+                        const newY = currentY + y + dy;
+                        if (newX < 0 || newX >= boardWidth || newY >= boardHeight || (newY >= 0 && board[newY][newX])) {
+                            return false;
+                        }
+                    }
+                }
+            }
+            return true;
+        }
+
+        function rotate() {
+            const rotated = currentPiece.shape[0].map((_, i) =>
+                currentPiece.shape.map(row => row[i]).reverse()
+            );
+            if (canMove(0, 0, rotated)) {
+                currentPiece.shape = rotated;
+            }
+        }
+
+        function merge() {
+            for (let y = 0; y < currentPiece.shape.length; y++) {
+                for (let x = 0; x < currentPiece.shape[y].length; x++) {
+                    if (currentPiece.shape[y][x]) {
+                        board[currentY + y][currentX + x] = currentPiece.color;
+                    }
+                }
+            }
+        }
+
+        function clearLines() {
+            for (let y = boardHeight - 1; y >= 0; y--) {
+                if (board[y].every(cell => cell)) {
+                    board.splice(y, 1);
+                    board.unshift(Array(boardWidth).fill(0));
+                }
+            }
+        }
+
+        function gameLoop() {
+            if (canMove(0, 1)) {
+                currentY++;
+            } else {
+                merge();
+                clearLines();
+                createPiece();
+                if (!canMove(0, 0)) {
+                    alert('Game Over!');
+                    return;
+                }
+            }
+            drawBoard();
+            drawPiece();
+            setTimeout(gameLoop, 500);
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft' && canMove(-1, 0)) {
+                currentX--;
+            } else if (e.key === 'ArrowRight' && canMove(1, 0)) {
+                currentX++;
+            } else if (e.key === 'ArrowDown' && canMove(0, 1)) {
+                currentY++;
+            } else if (e.key === 'ArrowUp') {
+                rotate();
+            }
+            drawBoard();
+            drawPiece();
+        });
+
+        createPiece();
+        gameLoop();
+    </script>
+</body>
+</html>
