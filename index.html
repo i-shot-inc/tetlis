@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>改良版テトリス</title>
+    <title>スコア機能付きテトリス</title>
     <style>
         #game-container {
             display: flex;
@@ -10,17 +10,23 @@
             align-items: flex-start;
             gap: 20px;
         }
-        #game-board, #next-piece {
+        #game-board, #side-panel {
             background-color: #f0f0f0;
-            position: relative;
         }
         #game-board {
             width: 300px;
             height: 600px;
+            position: relative;
+        }
+        #side-panel {
+            width: 120px;
+            padding: 10px;
         }
         #next-piece {
             width: 120px;
             height: 120px;
+            position: relative;
+            margin-bottom: 20px;
         }
         .block {
             width: 30px;
@@ -29,21 +35,30 @@
             box-sizing: border-box;
             border: 1px solid #000;
         }
+        #score {
+            font-size: 18px;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
     <div id="game-container">
         <div id="game-board"></div>
-        <div id="next-piece"></div>
+        <div id="side-panel">
+            <div id="next-piece"></div>
+            <div id="score">Score: 0</div>
+        </div>
     </div>
     <script>
         const gameBoard = document.getElementById('game-board');
         const nextPieceDisplay = document.getElementById('next-piece');
+        const scoreDisplay = document.getElementById('score');
         const boardWidth = 10;
         const boardHeight = 20;
         let board = Array(boardHeight).fill().map(() => Array(boardWidth).fill(0));
         let currentPiece, nextPiece;
         let currentX, currentY;
+        let score = 0;
 
         const pieces = [
             {shape: [[1, 1, 1, 1]], color: 'cyan'},
@@ -147,12 +162,34 @@
         }
 
         function clearLines() {
+            let linesCleared = 0;
             for (let y = boardHeight - 1; y >= 0; y--) {
                 if (board[y].every(cell => cell)) {
                     board.splice(y, 1);
                     board.unshift(Array(boardWidth).fill(0));
+                    linesCleared++;
+                    y++;  // Check the new line that dropped down
                 }
             }
+            updateScore(linesCleared);
+        }
+
+        function updateScore(linesCleared) {
+            switch (linesCleared) {
+                case 1:
+                    score += 100;
+                    break;
+                case 2:
+                    score += 300;
+                    break;
+                case 3:
+                    score += 500;
+                    break;
+                case 4:
+                    score += 1000;
+                    break;
+            }
+            scoreDisplay.textContent = `Score: ${score}`;
         }
 
         function gameLoop() {
@@ -163,7 +200,7 @@
                 clearLines();
                 createPiece();
                 if (!canMove(0, 0)) {
-                    alert('Game Over!');
+                    alert('Game Over! Your final score: ' + score);
                     return;
                 }
             }
